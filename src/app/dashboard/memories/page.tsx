@@ -31,10 +31,12 @@ import {
   buildYouTubeNoCookieEmbedUrl,
   extractYouTubeVideoId,
 } from "@/lib/youtube";
+import { FamilyGoalsSection } from "@/components/feed/FamilyGoalsSection";
 import type {
   FamilyFeedComment,
   FamilyFeedPost,
   FamilyFeedReaction,
+  FamilyGoal,
   FeedPostType,
   FeedReactionType,
 } from "@/types/database";
@@ -51,13 +53,14 @@ function todayDateInput() {
 }
 
 export default function FamilyPulseFeedPage() {
-  const { t, formatDate } = useLanguage();
+  const { t, tv, formatDate } = useLanguage();
   const { showToast } = useToast();
   const { profile, activeFamily, members, loadingFamilies } = useFamily();
 
   const [posts, setPosts] = useState<FamilyFeedPost[]>([]);
   const [reactions, setReactions] = useState<FamilyFeedReaction[]>([]);
   const [comments, setComments] = useState<FamilyFeedComment[]>([]);
+  const [familyGoals, setFamilyGoals] = useState<FamilyGoal[]>([]);
   const [loading, setLoading] = useState(false);
 
   // Filters
@@ -86,6 +89,7 @@ export default function FamilyPulseFeedPage() {
   const [tagsInput, setTagsInput] = useState("");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [selectedGoalId, setSelectedGoalId] = useState<string>("");
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [saving, setSaving] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -96,13 +100,14 @@ export default function FamilyPulseFeedPage() {
       setPosts([]);
       setReactions([]);
       setComments([]);
+      setFamilyGoals([]);
       return;
     }
 
     setLoading(true);
     try {
       const supabase = createClient();
-      const [postsRes, reactionsRes, commentsRes] = await Promise.all([
+      const [postsRes, reactionsRes, commentsRes, goalsRes] = await Promise.all([
         supabase
           .from("family_feed_posts")
           .select("*")
@@ -117,6 +122,11 @@ export default function FamilyPulseFeedPage() {
           .select("*")
           .eq("family_id", activeFamily.id)
           .order("created_at", { ascending: true }),
+        supabase
+          .from("family_goals")
+          .select("*")
+          .eq("family_id", activeFamily.id)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (postsRes.error) {
@@ -127,6 +137,7 @@ export default function FamilyPulseFeedPage() {
       setPosts((postsRes.data as FamilyFeedPost[]) ?? []);
       setReactions((reactionsRes.data as FamilyFeedReaction[]) ?? []);
       setComments((commentsRes.data as FamilyFeedComment[]) ?? []);
+      setFamilyGoals((goalsRes.data as FamilyGoal[]) ?? []);
     } finally {
       setLoading(false);
     }
@@ -217,6 +228,7 @@ export default function FamilyPulseFeedPage() {
     setTagsInput("");
     setPhotoUrl(null);
     setYoutubeUrl("");
+    setSelectedGoalId("");
     setModalOpen(true);
   };
 
@@ -229,6 +241,7 @@ export default function FamilyPulseFeedPage() {
     setTagsInput((post.tags ?? []).join(", "));
     setPhotoUrl(post.photo_url);
     setYoutubeUrl(post.youtube_url ?? "");
+    setSelectedGoalId(post.family_goal_id ?? "");
     setModalOpen(true);
   };
 
@@ -322,6 +335,7 @@ export default function FamilyPulseFeedPage() {
         photo_url: composerMode === "youtube" ? null : photoUrl,
         youtube_url: composerMode === "youtube" ? youtubeUrl.trim() : null,
         youtube_video_id: composerMode === "youtube" ? videoId : null,
+        family_goal_id: selectedGoalId || null,
       };
 
       if (editingPost) {
@@ -516,6 +530,13 @@ export default function FamilyPulseFeedPage() {
           </button>
         </div>
       </div>
+
+      {/* Shared Family Goals */}
+      <FamilyGoalsSection
+        goals={familyGoals}
+        posts={posts}
+        onChanged={loadFeed}
+      />
 
       {/* Search & Filter Controls */}
       <div className="surface-card space-y-3 rounded-2xl p-4">
@@ -947,7 +968,7 @@ export default function FamilyPulseFeedPage() {
       >
         <form
           onSubmit={handleSavePost}
-          className="box-border w-full max-w-full min-w-0 space-y-4"
+          className="box-border w-full max-w-full min-w-0 space-y-2.5"
         >
           {/* Mode Switcher */}
           {(!editingPost ||
@@ -958,7 +979,7 @@ export default function FamilyPulseFeedPage() {
               <button
                 type="button"
                 onClick={() => setComposerMode("memory")}
-                className={`inline-flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition cursor-pointer ${
                   composerMode === "memory"
                     ? "bg-white text-[#1C1917] shadow-xs"
                     : "text-[#6B655E]"
@@ -970,7 +991,7 @@ export default function FamilyPulseFeedPage() {
               <button
                 type="button"
                 onClick={() => setComposerMode("youtube")}
-                className={`inline-flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-semibold transition cursor-pointer ${
+                className={`inline-flex items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold transition cursor-pointer ${
                   composerMode === "youtube"
                     ? "bg-white text-[#C86D51] shadow-xs"
                     : "text-[#6B655E]"
@@ -984,12 +1005,6 @@ export default function FamilyPulseFeedPage() {
 
           {composerMode === "youtube" && (
             <div className="min-w-0">
-              <label
-                htmlFor="feed-youtube-url"
-                className="mb-1 block text-xs font-semibold text-[#57534E]"
-              >
-                {t.feed.youtubeUrlLabel}
-              </label>
               <input
                 id="feed-youtube-url"
                 type="url"
@@ -997,40 +1012,26 @@ export default function FamilyPulseFeedPage() {
                 value={youtubeUrl}
                 onChange={(e) => setYoutubeUrl(e.target.value)}
                 placeholder={t.feed.youtubeUrlPlaceholder}
-                className="input-base"
+                aria-label={t.feed.youtubeUrlLabel}
+                className="input-base py-2"
               />
-              <p className="mt-1 text-[11px] text-[#78716C]">
-                {t.feed.youtubeUrlHint}
-              </p>
-
               {parsedPreviewVideoId && (
-                <div className="mt-3">
-                  <p className="mb-1 text-[11px] font-semibold text-[#2D5A47]">
-                    {t.feed.youtubePreviewLabel}
-                  </p>
-                  <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-[#E7E1D8] bg-[#1C1917]">
-                    <iframe
-                      src={
-                        buildYouTubeNoCookieEmbedUrl(parsedPreviewVideoId) ?? ""
-                      }
-                      title={t.feed.youtubePreviewLabel}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 h-full w-full border-0"
-                    />
-                  </div>
+                <div className="relative mt-2 aspect-video max-h-40 w-full overflow-hidden rounded-xl border border-[#E7E1D8] bg-[#1C1917]">
+                  <iframe
+                    src={
+                      buildYouTubeNoCookieEmbedUrl(parsedPreviewVideoId) ?? ""
+                    }
+                    title={t.feed.youtubePreviewLabel}
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 h-full w-full border-0"
+                  />
                 </div>
               )}
             </div>
           )}
 
           <div className="min-w-0">
-            <label
-              htmlFor="feed-title-input"
-              className="mb-1 block text-xs font-semibold text-[#57534E]"
-            >
-              {t.memories.titleLabel}
-            </label>
             <input
               id="feed-title-input"
               type="text"
@@ -1042,42 +1043,40 @@ export default function FamilyPulseFeedPage() {
                   ? t.feed.postTitlePlaceholderVideo
                   : t.memories.titlePlaceholder
               }
-              className="input-base"
+              aria-label={t.memories.titleLabel}
+              className="input-base py-2"
             />
           </div>
 
-          <div className="min-w-0">
-            <label
-              htmlFor="feed-date-input"
-              className="mb-1 block text-xs font-semibold text-[#57534E]"
-            >
-              {t.memories.dateLabel}
-            </label>
-            <input
-              id="feed-date-input"
-              type="date"
-              required
-              value={activityDate}
-              onChange={(e) => setActivityDate(e.target.value)}
-              className="input-base w-full min-w-0 max-w-full box-border"
-            />
+          <div className="grid w-full max-w-full grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="min-w-0">
+              <input
+                id="feed-date-input"
+                type="date"
+                required
+                value={activityDate}
+                onChange={(e) => setActivityDate(e.target.value)}
+                aria-label={t.memories.dateLabel}
+                className="input-base w-full min-w-0 max-w-full box-border py-1.5"
+              />
+            </div>
+            <div className="min-w-0">
+              <input
+                id="feed-tags-input"
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder={t.memories.tagsPlaceholder}
+                aria-label={t.memories.tagsLabel}
+                className="input-base py-1.5"
+              />
+            </div>
           </div>
 
           <div className="min-w-0">
-            <label
-              htmlFor="feed-body-input"
-              className="mb-1 block text-xs font-semibold text-[#57534E]"
-            >
-              {composerMode === "youtube"
-                ? t.feed.reflectionLabel
-                : t.memories.notesLabel}{" "}
-              <span className="font-normal text-[#A8A29E]">
-                ({t.common.optional})
-              </span>
-            </label>
             <textarea
               id="feed-body-input"
-              rows={3}
+              rows={2}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder={
@@ -1085,42 +1084,38 @@ export default function FamilyPulseFeedPage() {
                   ? t.feed.reflectionPlaceholder
                   : t.memories.notesPlaceholder
               }
-              className="input-base resize-none"
+              aria-label={
+                composerMode === "youtube"
+                  ? t.feed.reflectionLabel
+                  : t.memories.notesLabel
+              }
+              className="input-base resize-none py-2"
             />
           </div>
 
-          <div className="min-w-0">
-            <label
-              htmlFor="feed-tags-input"
-              className="mb-1 block text-xs font-semibold text-[#57534E]"
-            >
-              {t.memories.tagsLabel}{" "}
-              <span className="font-normal text-[#A8A29E]">
-                ({t.common.optional})
-              </span>
-            </label>
-            <input
-              id="feed-tags-input"
-              type="text"
-              value={tagsInput}
-              onChange={(e) => setTagsInput(e.target.value)}
-              placeholder={t.memories.tagsPlaceholder}
-              className="input-base"
-            />
-            <p className="mt-1 text-[11px] text-[#78716C]">
-              {t.memories.tagsHint}
-            </p>
-          </div>
+          {familyGoals.length > 0 && (
+            <div className="min-w-0">
+              <select
+                aria-label={tv.vault.linkGoalLabel}
+                value={selectedGoalId}
+                onChange={(e) => setSelectedGoalId(e.target.value)}
+                className="input-base py-1.5"
+              >
+                <option value="">
+                  {tv.vault.linkGoalLabel}: {tv.vault.noGoalOption}
+                </option>
+                {familyGoals.map((g) => (
+                  <option key={g.id} value={g.id}>
+                    {g.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Photo upload (for photo/memory mode) */}
+          {/* Compact Photo Upload (for photo/memory mode) */}
           {composerMode === "memory" && (
             <div className="min-w-0">
-              <span className="mb-1.5 block text-xs font-semibold text-[#57534E]">
-                {t.memories.photoLabel}{" "}
-                <span className="font-normal text-[#A8A29E]">
-                  ({t.common.optional})
-                </span>
-              </span>
               <input
                 ref={photoInputRef}
                 type="file"
@@ -1135,14 +1130,14 @@ export default function FamilyPulseFeedPage() {
                   <img
                     src={photoUrl}
                     alt={title || "Photo preview"}
-                    className="h-40 w-full object-cover"
+                    className="h-28 w-full object-cover"
                   />
                   <button
                     type="button"
                     onClick={() => setPhotoUrl(null)}
-                    className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-lg bg-[#1C1917]/75 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-xs hover:bg-[#1C1917] cursor-pointer"
+                    className="absolute top-1.5 right-1.5 inline-flex items-center gap-1 rounded-lg bg-[#1C1917]/75 px-2 py-1 text-[11px] font-medium text-white backdrop-blur-xs hover:bg-[#1C1917] cursor-pointer"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-3 w-3" />
                     <span>{t.memories.removePhoto}</span>
                   </button>
                 </div>
@@ -1151,7 +1146,7 @@ export default function FamilyPulseFeedPage() {
                   type="button"
                   onClick={() => photoInputRef.current?.click()}
                   disabled={uploadingPhoto}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#D5CDC1] bg-[#FAF8F5] py-4 text-xs font-semibold text-[#57534E] transition hover:border-[#2D5A47] hover:text-[#2D5A47] cursor-pointer disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-[#D5CDC1] bg-[#FAF8F5] py-2.5 text-xs font-semibold text-[#57534E] transition hover:border-[#2D5A47] hover:text-[#2D5A47] cursor-pointer disabled:opacity-60"
                 >
                   {uploadingPhoto ? (
                     <>
@@ -1169,18 +1164,18 @@ export default function FamilyPulseFeedPage() {
             </div>
           )}
 
-          <div className="grid w-full max-w-full grid-cols-2 gap-2.5 pt-2 sm:flex sm:items-center sm:justify-end">
+          <div className="grid w-full max-w-full grid-cols-2 gap-2.5 pt-1 sm:flex sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="btn-secondary w-full sm:w-auto"
+              className="btn-secondary w-full py-2 sm:w-auto"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={saving || uploadingPhoto}
-              className="btn-primary w-full sm:w-auto"
+              className="btn-primary w-full py-2 sm:w-auto"
             >
               {saving ? (
                 <>

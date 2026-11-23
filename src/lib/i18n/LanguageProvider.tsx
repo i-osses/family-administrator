@@ -12,6 +12,10 @@ import { createClient } from "@/lib/supabase/client";
 import { getSupabaseEnv } from "@/lib/supabase/config";
 import type { Language } from "@/types/database";
 import { dictionaries, type Dictionary } from "./dictionaries";
+import {
+  extendedDictionaries,
+  type ExtendedDictionary,
+} from "./vaultDictionaries";
 
 const STORAGE_KEY = "family_admin_language";
 
@@ -20,6 +24,7 @@ interface LanguageContextValue {
   setLanguage: (lang: Language) => void;
   toggleLanguage: () => void;
   t: Dictionary;
+  tv: ExtendedDictionary;
   locale: string;
   formatCurrency: (amount: number) => string;
   formatDate: (
@@ -148,6 +153,7 @@ export function LanguageProvider({
 
   const locale = language === "es" ? "es-ES" : "en-US";
   const t = dictionaries[language];
+  const tv = extendedDictionaries[language];
 
   const formatCurrency = useCallback(
     (amount: number) =>
@@ -202,6 +208,7 @@ export function LanguageProvider({
       setLanguage,
       toggleLanguage,
       t,
+      tv,
       locale,
       formatCurrency,
       formatDate,
@@ -213,6 +220,7 @@ export function LanguageProvider({
       setLanguage,
       toggleLanguage,
       t,
+      tv,
       locale,
       formatCurrency,
       formatDate,

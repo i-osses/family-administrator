@@ -22,14 +22,34 @@ export function Modal({
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
     document.addEventListener("keydown", handleKeyDown);
+
+    // Lock background scroll cleanly on both desktop and iOS Safari
+    const scrollY = window.scrollY;
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevBodyPosition = document.body.style.position;
+    const prevBodyTop = document.body.style.top;
+    const prevBodyWidth = document.body.style.width;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
     document.body.style.overflow = "hidden";
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = "";
+      document.documentElement.style.overflow = prevHtmlOverflow;
+      document.body.style.overflow = prevBodyOverflow;
+      document.body.style.position = prevBodyPosition;
+      document.body.style.top = prevBodyTop;
+      document.body.style.width = prevBodyWidth;
+      window.scrollTo(0, scrollY);
     };
   }, [open, onClose]);
 
@@ -37,7 +57,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-x-hidden bg-[#1C1917]/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-hidden overscroll-none bg-[#1C1917]/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -46,21 +66,24 @@ export function Modal({
       }}
     >
       <div
-        className={`animate-fade-in box-border w-full max-w-full ${maxWidthClass} max-h-[90dvh] overflow-x-hidden overflow-y-auto rounded-t-2xl border border-[#E7E1D8] bg-white p-4 shadow-2xl sm:rounded-2xl sm:p-6`}
+        className={`animate-fade-in box-border flex w-full max-w-full flex-col ${maxWidthClass} max-h-[100dvh] sm:max-h-[92dvh] overflow-hidden rounded-t-2xl border border-[#E7E1D8] bg-white shadow-2xl sm:rounded-2xl`}
         style={{
-          paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))",
+          paddingBottom: "max(0.875rem, env(safe-area-inset-bottom))",
         }}
       >
-        <div className="mb-4 flex items-start justify-between gap-3 sm:mb-5">
+        {/* Fixed Compact Header */}
+        <div className="flex shrink-0 items-start justify-between gap-3 border-b border-[#EFEAE2] px-4 pt-3.5 pb-2.5 sm:px-5 sm:pt-4 sm:pb-3">
           <div className="min-w-0 flex-1">
             <h2
               id="modal-title"
-              className="truncate font-display text-lg font-bold tracking-tight text-[#1C1917]"
+              className="truncate font-display text-base font-bold tracking-tight text-[#1C1917] sm:text-lg"
             >
               {title}
             </h2>
             {subtitle && (
-              <p className="mt-1 text-sm text-[#6B655E]">{subtitle}</p>
+              <p className="mt-0.5 line-clamp-2 text-xs text-[#6B655E]">
+                {subtitle}
+              </p>
             )}
           </div>
           <button
@@ -72,7 +95,11 @@ export function Modal({
             <X className="h-5 w-5" />
           </button>
         </div>
-        <div className="min-w-0 max-w-full">{children}</div>
+
+        {/* Compact Body (zero-scroll on standard mobile, emergency fallback scroll only on tiny viewports) */}
+        <div className="min-h-0 min-w-0 max-w-full flex-1 overflow-x-hidden overflow-y-auto overscroll-contain px-4 pt-3 pb-1 sm:px-5 sm:pt-4">
+          {children}
+        </div>
       </div>
     </div>
   );

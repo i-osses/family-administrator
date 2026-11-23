@@ -1,5 +1,4 @@
 import type {
-  CalendarCategory,
   FeedPostType,
   HabitCadence,
   HabitCategory,
@@ -242,7 +241,7 @@ export interface Dictionary {
     endBeforeStartError: string;
     confirmDeleteEvent: string;
     weekdaysShort: [string, string, string, string, string, string, string];
-    categories: Record<CalendarCategory, string>;
+    categories: Record<string, string>;
   };
   memories: {
     title: string;
@@ -658,15 +657,15 @@ export const dictionaries: Record<Language, Dictionary> = {
       roleUpdatedToast: "Member role updated.",
       inviteTitle: "Invite by Email",
       inviteSubtitle:
-        "Send a personalized invitation email via Resend with a secure one-click join link.",
+        "Send a direct invitation email powered by Supabase with a secure one-click join link.",
       emailLabel: "Email address",
       emailPlaceholder: "relative@example.com",
       roleLabel: "Role",
       sendInviteButton: "Send invitation",
       sendingInvite: "Sending invitation...",
-      inviteSentToast: "Invitation email sent!",
+      inviteSentToast: "Invitation email sent directly to their inbox!",
       inviteCreatedNoEmailToast:
-        "Invitation created! Configure RESEND_API_KEY to send emails automatically, or copy the invite link below.",
+        "Invitation created! Copy the invite link below to share it right away.",
       invitationsHistoryTitle: "Sent Invitations",
       noInvitations: "No invitations sent yet.",
       statusPending: "Pending",
@@ -1226,15 +1225,15 @@ export const dictionaries: Record<Language, Dictionary> = {
       roleUpdatedToast: "Rol del miembro actualizado.",
       inviteTitle: "Invitar por Correo Electrónico",
       inviteSubtitle:
-        "Envía una invitación personalizada con Resend y un enlace seguro para unirse en un clic.",
+        "Envía un correo de invitación directo con Supabase y un enlace seguro para unirse en un clic.",
       emailLabel: "Correo electrónico",
       emailPlaceholder: "familiar@ejemplo.com",
       roleLabel: "Rol",
       sendInviteButton: "Enviar invitación",
       sendingInvite: "Enviando invitación...",
-      inviteSentToast: "¡Correo de invitación enviado!",
+      inviteSentToast: "¡Correo de invitación enviado directamente!",
       inviteCreatedNoEmailToast:
-        "¡Invitación creada! Configura RESEND_API_KEY para enviar correos automáticamente o copia el enlace abajo.",
+        "¡Invitación creada! Copia el enlace de invitación abajo para compartirlo al instante.",
       invitationsHistoryTitle: "Invitaciones Enviadas",
       noInvitations: "Todavía no se han enviado invitaciones.",
       statusPending: "Pendiente",

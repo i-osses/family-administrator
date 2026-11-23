@@ -24,7 +24,7 @@ import { NoFamilyState } from "@/components/dashboard/NoFamilyState";
 import { Avatar } from "@/components/ui/Avatar";
 import {
   DEFAULT_BANNER_URL,
-  getCalendarCategoryStyle,
+  resolveCategoryColor,
 } from "@/lib/constants";
 import type {
   BudgetEntry,
@@ -339,10 +339,13 @@ export default function DashboardOverviewPage() {
                 ) : (
                   <ul className="divide-y divide-[#EFEAE2]">
                     {upcomingEvents.map((event) => {
-                      const style = getCalendarCategoryStyle(event.category);
-                      const assigneeName = event.assigned_to
-                        ? memberMap.get(event.assigned_to)
-                        : t.common.everyone;
+                      const dotColor = resolveCategoryColor(
+                        event.category,
+                        event.category_color
+                      );
+                      const categoryLabel =
+                        t.calendar.categories[event.category.toLowerCase()] ??
+                        event.category;
 
                       return (
                         <li
@@ -351,7 +354,8 @@ export default function DashboardOverviewPage() {
                         >
                           <div className="flex min-w-0 items-start gap-3">
                             <span
-                              className={`mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full ${style.dotClass}`}
+                              className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                              style={{ backgroundColor: dotColor }}
                             />
                             <div className="min-w-0">
                               <p className="truncate text-sm font-semibold text-[#1C1917]">
@@ -364,14 +368,11 @@ export default function DashboardOverviewPage() {
                                   day: "numeric",
                                 })}{" "}
                                 · {formatTime(event.start_time)}
-                                {assigneeName ? ` · ${assigneeName}` : ""}
                               </p>
                             </div>
                           </div>
-                          <span
-                            className={`shrink-0 rounded-full border px-2 py-0.5 text-[11px] font-medium ${style.badgeClass}`}
-                          >
-                            {t.calendar.categories[event.category]}
+                          <span className="shrink-0 rounded-full border border-[#E7E1D8] bg-[#FAF8F5] px-2 py-0.5 text-[11px] font-medium text-[#1C1917]">
+                            {categoryLabel}
                           </span>
                         </li>
                       );

@@ -1,14 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Flame, Lock, ShieldCheck, Wallet } from "lucide-react";
+import { BookMarked, Flame, Lock, ShieldCheck, Wallet } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { PersonalMemoryVault } from "@/components/my-space/PersonalMemoryVault";
 import { PersonalBucketBudget } from "@/components/my-space/PersonalBucketBudget";
 import { PersonalHabitsTasks } from "@/components/my-space/PersonalHabitsTasks";
 
 export default function MySpacePage() {
-  const { t } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"budget" | "habits">("budget");
+  const { t, tv } = useLanguage();
+  const [activeTab, setActiveTab] = useState<"vault" | "budget" | "habits">(
+    "vault"
+  );
 
   return (
     <div className="space-y-6">
@@ -32,38 +35,53 @@ export default function MySpacePage() {
         </div>
       </header>
 
-      {/* Sub-Navigation Tabs */}
-      <div className="grid w-full max-w-md grid-cols-2 gap-1.5 rounded-2xl border border-[#E7E1D8] bg-[#F4F0EA] p-1">
+      {/* Sub-Navigation Tabs: Memory Vault, Bucket Budget (unchanged), Habits & Tasks */}
+      <div className="grid w-full max-w-xl grid-cols-3 gap-1 rounded-2xl border border-[#E7E1D8] bg-[#F4F0EA] p-1">
+        <button
+          type="button"
+          id="myspace-tab-vault"
+          onClick={() => setActiveTab("vault")}
+          className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:text-sm cursor-pointer ${
+            activeTab === "vault"
+              ? "bg-white text-[#1C1917] shadow-xs"
+              : "text-[#6B655E] hover:text-[#1C1917]"
+          }`}
+        >
+          <BookMarked className="h-4 w-4 shrink-0 text-[#2D5A47]" />
+          <span className="truncate">{tv.vault.tabLabel}</span>
+        </button>
         <button
           type="button"
           id="myspace-tab-budget"
           onClick={() => setActiveTab("budget")}
-          className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition sm:text-sm cursor-pointer ${
+          className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:text-sm cursor-pointer ${
             activeTab === "budget"
               ? "bg-white text-[#1C1917] shadow-xs"
               : "text-[#6B655E] hover:text-[#1C1917]"
           }`}
         >
-          <Wallet className="h-4 w-4 text-[#2D5A47]" />
+          <Wallet className="h-4 w-4 shrink-0 text-[#3B6998]" />
           <span className="truncate">{t.mySpace.budgetTab}</span>
         </button>
         <button
           type="button"
           id="myspace-tab-habits"
           onClick={() => setActiveTab("habits")}
-          className={`inline-flex items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-xs font-semibold transition sm:text-sm cursor-pointer ${
+          className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2 py-2.5 text-xs font-semibold transition sm:text-sm cursor-pointer ${
             activeTab === "habits"
               ? "bg-white text-[#1C1917] shadow-xs"
               : "text-[#6B655E] hover:text-[#1C1917]"
           }`}
         >
-          <Flame className="h-4 w-4 text-[#C86D51]" />
+          <Flame className="h-4 w-4 shrink-0 text-[#C86D51]" />
           <span className="truncate">{t.mySpace.habitsTab}</span>
         </button>
       </div>
 
       {/* Active Personal Tool */}
-      {activeTab === "budget" ? (
+      {activeTab === "vault" ? (
+        <PersonalMemoryVault />
+      ) : activeTab === "budget" ? (
         <PersonalBucketBudget />
       ) : (
         <PersonalHabitsTasks />

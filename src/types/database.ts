@@ -4,14 +4,11 @@ export type FamilyRole = "admin" | "member";
 
 export type InvitationStatus = "pending" | "accepted" | "expired";
 
-export type CalendarCategory =
-  | "family"
-  | "school"
-  | "health"
-  | "chores"
-  | "celebration"
-  | "travel"
-  | "other";
+export type CalendarCategory = string;
+
+export type CalendarVisibility = "family" | "private";
+
+export type CalendarRecurrenceRule = "none" | "daily" | "weekly" | "monthly";
 
 export type BudgetType = "income" | "expense";
 
@@ -44,6 +41,17 @@ export type HabitCategory =
   | "personal"
   | "other";
 
+export type MemoryTemplateType = "media" | "location" | "general";
+
+export type MemoryTagStatus = "pending" | "confirmed";
+
+export type FamilyGoalCategory =
+  | "spiritual"
+  | "learning"
+  | "adventure"
+  | "health"
+  | "other";
+
 export interface Profile {
   id: string;
   email: string;
@@ -69,6 +77,15 @@ export interface FamilyModuleSettings {
   show_quick_actions: boolean;
   updated_by: string | null;
   updated_at: string;
+}
+
+export interface FamilyCalendarCategory {
+  id: string;
+  family_id: string;
+  name: string;
+  color: string;
+  created_by: string | null;
+  created_at: string;
 }
 
 export interface FamilyMember {
@@ -118,7 +135,12 @@ export interface CalendarEvent {
   description: string | null;
   start_time: string;
   end_time: string;
-  category: CalendarCategory;
+  category: string;
+  category_color?: string | null;
+  visibility?: CalendarVisibility;
+  recurrence_rule?: CalendarRecurrenceRule;
+  recurrence_days?: number[];
+  recurrence_end_date?: string | null;
   assigned_to: string | null;
   created_by: string | null;
   created_at: string;
@@ -132,6 +154,18 @@ export interface ActivityMemory {
   activity_date: string;
   tags: string[];
   photo_url: string | null;
+  created_by: string | null;
+  created_at: string;
+}
+
+export interface FamilyGoal {
+  id: string;
+  family_id: string;
+  title: string;
+  category: FamilyGoalCategory;
+  target_count: number;
+  notes: string | null;
+  is_completed: boolean;
   created_by: string | null;
   created_at: string;
 }
@@ -150,6 +184,7 @@ export interface FamilyFeedPost {
   youtube_video_id: string | null;
   milestone_label: string | null;
   calendar_event_id: string | null;
+  family_goal_id?: string | null;
   created_at: string;
 }
 
@@ -166,6 +201,62 @@ export interface FamilyFeedComment {
   id: string;
   post_id: string;
   family_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+}
+
+export interface PersonalMemoryCategory {
+  id: string;
+  user_id: string;
+  name: string;
+  template_type: MemoryTemplateType;
+  color: string;
+  created_at: string;
+}
+
+export interface PersonalMemory {
+  id: string;
+  user_id: string;
+  family_id: string | null;
+  category_name: string;
+  template_type: MemoryTemplateType;
+  title: string;
+  occurred_at: string;
+  rating: number | null;
+  notes: string | null;
+  location_name: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  photo_url: string | null;
+  tags: string[];
+  shared_to_feed: boolean;
+  shared_feed_post_id: string | null;
+  family_goal_id: string | null;
+  source_memory_id: string | null;
+  thread_id: string;
+  created_at: string;
+}
+
+export interface PersonalMemoryTag {
+  id: string;
+  memory_id: string | null;
+  family_id: string;
+  tagged_by: string;
+  tagged_user_id: string;
+  status: MemoryTagStatus;
+  copied_memory_id: string | null;
+  memory_title_snapshot: string;
+  memory_category_snapshot: string;
+  memory_occurred_at_snapshot: string;
+  created_at: string;
+  confirmed_at: string | null;
+}
+
+export interface PersonalMemoryComment {
+  id: string;
+  thread_id: string;
+  memory_id: string | null;
   user_id: string;
   content: string;
   created_at: string;

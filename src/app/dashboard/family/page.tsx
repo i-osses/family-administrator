@@ -252,7 +252,8 @@ export default function FamilyManagementPage() {
         invitation?: FamilyInvitation;
         inviteUrl?: string;
         emailSent?: boolean;
-        emailError?: string | null;
+        alreadyRegistered?: boolean;
+        deliveryNote?: string | null;
         error?: string;
       };
 
@@ -267,11 +268,6 @@ export default function FamilyManagementPage() {
 
       if (payload.emailSent) {
         showToast(t.family.inviteSentToast, "success");
-      } else if (payload.emailError) {
-        showToast(
-          `${t.family.inviteCreatedNoEmailToast} (${payload.emailError})`,
-          "info"
-        );
       } else {
         showToast(t.family.inviteCreatedNoEmailToast, "info");
       }
