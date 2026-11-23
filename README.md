@@ -5,12 +5,15 @@ A bilingual (**English & Spanish**) household management web application built w
 ## Features
 
 - **Google OAuth Authentication (`/`, `/login`, `/auth/callback`)** — Secure SSR authentication via `@supabase/ssr` with automatic dashboard redirect and seamless return to invitation acceptance links (`/invite/[token]`).
+- **Two-Tier Navigation & Admin Module Visibility (`/dashboard`, `/dashboard/family`)** — Separates the shared **Family Hub** (Calendar, Family Pulse Feed, admin-enabled optional modules) from each member's strictly private **My Space**. Family admins can toggle which optional modules appear on the Family Hub overview (shared Family Budget is hidden by default).
 - **Family Setup & Spotlight Management (`/dashboard/family`)** — Create and switch between multiple family groups, upload custom household spotlight banners to the public `spotlight-banners` Supabase Storage bucket, manage member roles (`admin` / `member`), and send bilingual email invitations via Resend (`/api/invite`).
-- **Shared Family Calendar (`/dashboard/calendar`)** — Interactive monthly grid and chronological agenda views with color-coded categories, family member assignments, filters, and full event CRUD.
-- **Activity & Memory Log (`/dashboard/memories`)** — Capture family outings, milestones, and notes with dates, searchable tags, optional photo uploads, and sort/filter controls.
-- **Personal & Family Budgeting (`/dashboard/budget`)** — Track income and expenses by month or all-time with total income, total expenses, net balance, savings rate, and visual category breakdowns.
+- **Shared Family Calendar (`/dashboard/calendar`)** — Interactive monthly grid and chronological agenda views with color-coded categories, family member assignments, filters, optional sharing to Family Pulse, and full event CRUD.
+- **Family Pulse Private Social Feed (`/dashboard/memories`)** — Private family-only chronological feed for photos, memories, shared calendar events, celebrated habit milestones, and privacy-enhanced embedded YouTube videos (`youtube-nocookie.com`) with reactions and comments.
+- **Private My Space (`/dashboard/my-space`)** — Strictly private to each authenticated user (`user_id = auth.uid()` RLS):
+  - **Pay-Yourself-First Bucket Budget:** Automatically splits personal income across Tithing (min 10%), Investment (min 10%), Savings (min 10%), and Free to Spend (remainder), with smart bucket disbursements, recurring expenses/subscriptions, and net remaining balance tracking.
+  - **Personal Habits, Tasks & Reminders:** Daily/weekly routines, one-off tasks, custom reminder times, streaks, strictly private notes, and optional milestone sharing to Family Pulse.
 - **Bilingual UI (EN / ES)** — Complete English and Spanish translations persisted in `localStorage` and synced to `profiles.preferred_language`.
-- **Mobile-First Navigation** — Fixed bottom tab bar on mobile screens, sidebar navigation on desktop, and a top bar with family switcher and EN/ES toggle.
+- **Mobile-First Experience** — Anti-zoom viewport and 16px mobile inputs, overflow-safe mobile modals, fixed bottom tab bar on mobile, and two-tier desktop sidebar.
 
 ## Tech Stack
 
@@ -49,14 +52,8 @@ cp .env.example .env.local
 ### 3. Apply the Supabase Database Schema
 
 1. Open your Supabase project dashboard and navigate to **SQL Editor**.
-2. Paste and run the entire contents of [`supabase/schema.sql`](./supabase/schema.sql).
-3. The script is fully idempotent and sets up:
-   - Tables: `profiles`, `families`, `family_members`, `family_invitations`, `calendar_events`, `activity_memories`, `budget_entries`
-   - Performance indexes on foreign keys, dates, tokens, and tags
-   - Triggers: auto-creating a `profiles` record on user signup (`on_auth_user_created`) and auto-assigning the creator as family `admin` (`on_family_created`)
-   - RPC helpers: `get_invitation_by_token` and `accept_family_invitation`
-   - Row Level Security (RLS) policies on all tables
-   - Public `spotlight-banners` Storage bucket and family-scoped upload/read policies
+2. For a **fresh project**, paste and run [`supabase/schema.sql`](./supabase/schema.sql). For an **existing project**, run [`supabase/migrations/20261122_my_space_and_family_pulse.sql`](./supabase/migrations/20261122_my_space_and_family_pulse.sql).
+3. Both scripts are idempotent and configure strict Row Level Security separating shared `family_id` tables (`families`, `family_members`, `family_module_settings`, `family_invitations`, `calendar_events`, `family_feed_posts`, `family_feed_reactions`, `family_feed_comments`, `activity_memories`, `budget_entries`) from strictly private `user_id = auth.uid()` tables (`personal_budget_settings`, `personal_income_entries`, `personal_recurring_expenses`, `personal_bucket_transactions`, `personal_habits`), plus the public `spotlight-banners` Storage bucket.
 
 ### 4. Enable Google OAuth in Supabase
 

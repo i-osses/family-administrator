@@ -12,12 +12,35 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type {
   FamilyMemberWithProfile,
+  FamilyModuleSettings,
   FamilyRole,
   FamilyWithRole,
   Profile,
 } from "@/types/database";
 
 const ACTIVE_FAMILY_KEY = "family_admin_active_family";
+
+export type ModuleSettingsPatch = Partial<
+  Pick<
+    FamilyModuleSettings,
+    | "show_calendar"
+    | "show_family_feed"
+    | "show_family_budget"
+    | "show_quick_actions"
+  >
+>;
+
+function buildDefaultModuleSettings(familyId: string): FamilyModuleSettings {
+  return {
+    family_id: familyId,
+    show_calendar: true,
+    show_family_feed: true,
+    show_family_budget: false,
+    show_quick_actions: true,
+    updated_by: null,
+    updated_at: new Date().toISOString(),
+  };
+}
 
 interface FamilyContextValue {
   profile: Profile;
@@ -26,10 +49,12 @@ interface FamilyContextValue {
   activeFamilyId: string | null;
   setActiveFamilyId: (familyId: string) => void;
   members: FamilyMemberWithProfile[];
+  moduleSettings: FamilyModuleSettings;
   loadingFamilies: boolean;
   loadingMembers: boolean;
   refreshFamilies: (preferredFamilyId?: string) => Promise<void>;
   refreshMembers: () => Promise<void>;
+  updateModuleSettings: (patch: ModuleSettingsPatch) => Promise<void>;
   createFamily: (name: string) => Promise<FamilyWithRole | null>;
   signOut: () => Promise<void>;
 }
@@ -70,6 +95,9 @@ export function FamilyProvider({
     null
   );
   const [members, setMembers] = useState<FamilyMemberWithProfile[]>([]);
+  const [moduleSettings, setModuleSettings] = useState<FamilyModuleSettings>(
+    () => buildDefaultModuleSettings("")
+  );
   const [loadingFamilies, setLoadingFamilies] = useState(true);
   const [loadingMembers, setLoadingMembers] = useState(false);
 
@@ -150,38 +178,51 @@ export function FamilyProvider({
     await Promise.resolve();
     if (!activeFamilyId) {
       setMembers([]);
+      setModuleSettings(buildDefaultModuleSettings(""));
       return;
     }
 
     setLoadingMembers(true);
     try {
       const supabase = createClient();
-      const { data, error } = await supabase
-        .from("family_members")
-        .select(
-          "id, family_id, user_id, role, joined_at, profile:profiles(id, email, full_name, avatar_url, preferred_language, created_at)"
-        )
-        .eq("family_id", activeFamilyId)
-        .order("joined_at", { ascending: true });
+      const [membersRes, modulesRes] = await Promise.all([
+        supabase
+          .from("family_members")
+          .select(
+            "id, family_id, user_id, role, joined_at, profile:profiles(id, email, full_name, avatar_url, preferred_language, created_at)"
+          )
+          .eq("family_id", activeFamilyId)
+          .order("joined_at", { ascending: true }),
+        supabase
+          .from("family_module_settings")
+          .select("*")
+          .eq("family_id", activeFamilyId)
+          .maybeSingle(),
+      ]);
 
-      if (error) {
-        console.error("Failed to load members:", error.message);
+      if (membersRes.error) {
+        console.error("Failed to load members:", membersRes.error.message);
         setMembers([]);
-        return;
+      } else {
+        const rawRows = (membersRes.data as unknown as RawMemberRow[]) ?? [];
+        const normalized: FamilyMemberWithProfile[] = rawRows.map((row) => ({
+          id: row.id,
+          family_id: row.family_id,
+          user_id: row.user_id,
+          role: row.role,
+          joined_at: row.joined_at,
+          profile: Array.isArray(row.profile)
+            ? (row.profile[0] ?? null)
+            : row.profile,
+        }));
+        setMembers(normalized);
       }
 
-      const rawRows = (data as unknown as RawMemberRow[]) ?? [];
-      const normalized: FamilyMemberWithProfile[] = rawRows.map((row) => ({
-        id: row.id,
-        family_id: row.family_id,
-        user_id: row.user_id,
-        role: row.role,
-        joined_at: row.joined_at,
-        profile: Array.isArray(row.profile)
-          ? (row.profile[0] ?? null)
-          : row.profile,
-      }));
-      setMembers(normalized);
+      if (modulesRes.data) {
+        setModuleSettings(modulesRes.data as FamilyModuleSettings);
+      } else {
+        setModuleSettings(buildDefaultModuleSettings(activeFamilyId));
+      }
     } finally {
       setLoadingMembers(false);
     }
@@ -200,6 +241,48 @@ export function FamilyProvider({
     }, 0);
     return () => window.clearTimeout(timer);
   }, [refreshMembers]);
+
+  const updateModuleSettings = useCallback(
+    async (patch: ModuleSettingsPatch) => {
+      if (!activeFamilyId) return;
+      const nextSettings: FamilyModuleSettings = {
+        ...moduleSettings,
+        ...patch,
+        family_id: activeFamilyId,
+        updated_by: profile.id,
+        updated_at: new Date().toISOString(),
+      };
+
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from("family_module_settings")
+        .upsert(
+          {
+            family_id: activeFamilyId,
+            show_calendar: nextSettings.show_calendar,
+            show_family_feed: nextSettings.show_family_feed,
+            show_family_budget: nextSettings.show_family_budget,
+            show_quick_actions: nextSettings.show_quick_actions,
+            updated_by: profile.id,
+            updated_at: nextSettings.updated_at,
+          },
+          { onConflict: "family_id" }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data) {
+        setModuleSettings(data as FamilyModuleSettings);
+      } else {
+        setModuleSettings(nextSettings);
+      }
+    },
+    [activeFamilyId, moduleSettings, profile.id]
+  );
 
   const createFamily = useCallback(
     async (name: string): Promise<FamilyWithRole | null> => {
@@ -255,10 +338,12 @@ export function FamilyProvider({
       activeFamilyId,
       setActiveFamilyId,
       members,
+      moduleSettings,
       loadingFamilies,
       loadingMembers,
       refreshFamilies,
       refreshMembers,
+      updateModuleSettings,
       createFamily,
       signOut,
     }),
@@ -269,10 +354,12 @@ export function FamilyProvider({
       activeFamilyId,
       setActiveFamilyId,
       members,
+      moduleSettings,
       loadingFamilies,
       loadingMembers,
       refreshFamilies,
       refreshMembers,
+      updateModuleSettings,
       createFamily,
       signOut,
     ]

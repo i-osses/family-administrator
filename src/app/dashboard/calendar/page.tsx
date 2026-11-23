@@ -72,6 +72,7 @@ export default function CalendarPage() {
   const [endTime, setEndTime] = useState("");
   const [category, setCategory] = useState<CalendarCategory>("family");
   const [assignedTo, setAssignedTo] = useState<string>("");
+  const [shareToFeed, setShareToFeed] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const loadEvents = useCallback(async () => {
@@ -233,6 +234,7 @@ export default function CalendarPage() {
     setDescription("");
     setCategory("family");
     setAssignedTo("");
+    setShareToFeed(false);
 
     const baseDate = dateKey
       ? (() => {
@@ -260,6 +262,7 @@ export default function CalendarPage() {
     setEndTime(toLocalDateTimeInput(new Date(event.end_time)));
     setCategory(event.category);
     setAssignedTo(event.assigned_to ?? "");
+    setShareToFeed(false);
     setModalOpen(true);
   };
 
@@ -295,11 +298,40 @@ export default function CalendarPage() {
         if (error) throw error;
         showToast(t.calendar.eventUpdatedToast, "success");
       } else {
-        const { error } = await supabase.from("calendar_events").insert({
-          ...payload,
-          created_by: profile.id,
-        });
+        const { data: createdEvent, error } = await supabase
+          .from("calendar_events")
+          .insert({
+            ...payload,
+            created_by: profile.id,
+          })
+          .select("id")
+          .single();
         if (error) throw error;
+
+        if (shareToFeed && createdEvent) {
+          const eventSummary = [
+            `${formatDate(startIso, {
+              weekday: "short",
+              month: "short",
+              day: "numeric",
+            })} · ${formatTime(startIso)} – ${formatTime(endIso)}`,
+            description.trim(),
+          ]
+            .filter(Boolean)
+            .join("\n");
+
+          await supabase.from("family_feed_posts").insert({
+            family_id: activeFamily.id,
+            author_id: profile.id,
+            post_type: "event",
+            title: title.trim(),
+            body: eventSummary,
+            activity_date: toDateKey(startIso),
+            tags: [category],
+            calendar_event_id: createdEvent.id,
+          });
+        }
+
         showToast(t.calendar.eventCreatedToast, "success");
       }
 
@@ -824,8 +856,11 @@ export default function CalendarPage() {
         onClose={() => setModalOpen(false)}
         title={editingEvent ? t.calendar.editEvent : t.calendar.newEvent}
       >
-        <form onSubmit={handleSaveEvent} className="space-y-4">
-          <div>
+        <form
+          onSubmit={handleSaveEvent}
+          className="box-border w-full max-w-full min-w-0 space-y-4"
+        >
+          <div className="min-w-0">
             <label
               htmlFor="event-title-input"
               className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -843,8 +878,8 @@ export default function CalendarPage() {
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
+          <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="min-w-0">
               <label
                 htmlFor="event-start-input"
                 className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -857,10 +892,10 @@ export default function CalendarPage() {
                 required
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="input-base"
+                className="input-base w-full min-w-0 max-w-full box-border"
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label
                 htmlFor="event-end-input"
                 className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -873,13 +908,13 @@ export default function CalendarPage() {
                 required
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="input-base"
+                className="input-base w-full min-w-0 max-w-full box-border"
               />
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
+          <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="min-w-0">
               <label
                 htmlFor="event-category-select"
                 className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -901,7 +936,7 @@ export default function CalendarPage() {
                 ))}
               </select>
             </div>
-            <div>
+            <div className="min-w-0">
               <label
                 htmlFor="event-assignee-select"
                 className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -924,7 +959,7 @@ export default function CalendarPage() {
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="event-description-input"
               className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -944,18 +979,37 @@ export default function CalendarPage() {
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          {!editingEvent && (
+            <label className="flex items-start gap-2.5 rounded-xl border border-[#EFEAE2] bg-[#FAF8F5] p-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={shareToFeed}
+                onChange={(e) => setShareToFeed(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#D5CDC1] accent-[#2D5A47]"
+              />
+              <span className="min-w-0 text-xs">
+                <span className="block font-semibold text-[#1C1917]">
+                  {t.calendar.shareToFeedLabel}
+                </span>
+                <span className="mt-0.5 block text-[#6B655E]">
+                  {t.calendar.shareToFeedHint}
+                </span>
+              </span>
+            </label>
+          )}
+
+          <div className="grid w-full max-w-full grid-cols-2 gap-2.5 pt-2 sm:flex sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto"
             >
               {saving ? (
                 <>

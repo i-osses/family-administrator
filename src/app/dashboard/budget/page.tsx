@@ -680,9 +680,12 @@ export default function BudgetPage() {
         onClose={() => setModalOpen(false)}
         title={editingEntry ? t.budget.editEntry : t.budget.newEntry}
       >
-        <form onSubmit={handleSaveEntry} className="space-y-4">
+        <form
+          onSubmit={handleSaveEntry}
+          className="box-border w-full max-w-full min-w-0 space-y-4"
+        >
           {/* Type Segmented Toggle */}
-          <div>
+          <div className="min-w-0">
             <span className="mb-1.5 block text-xs font-semibold text-[#57534E]">
               {t.budget.typeLabel}
             </span>
@@ -712,8 +715,8 @@ export default function BudgetPage() {
             </div>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
+          <div className="grid w-full max-w-full grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="min-w-0">
               <label
                 htmlFor="budget-amount-input"
                 className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -733,7 +736,7 @@ export default function BudgetPage() {
               />
             </div>
 
-            <div>
+            <div className="min-w-0">
               <label
                 htmlFor="budget-date-input"
                 className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -746,12 +749,12 @@ export default function BudgetPage() {
                 required
                 value={entryDate}
                 onChange={(e) => setEntryDate(e.target.value)}
-                className="input-base"
+                className="input-base w-full min-w-0 max-w-full box-border"
               />
             </div>
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="budget-category-select"
               className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -786,7 +789,7 @@ export default function BudgetPage() {
             )}
           </div>
 
-          <div>
+          <div className="min-w-0">
             <label
               htmlFor="budget-description-input"
               className="mb-1 block text-xs font-semibold text-[#57534E]"
@@ -806,18 +809,18 @@ export default function BudgetPage() {
             />
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2">
+          <div className="grid w-full max-w-full grid-cols-2 gap-2.5 pt-2 sm:flex sm:items-center sm:justify-end">
             <button
               type="button"
               onClick={() => setModalOpen(false)}
-              className="btn-secondary"
+              className="btn-secondary w-full sm:w-auto"
             >
               {t.common.cancel}
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto"
             >
               {saving ? (
                 <>

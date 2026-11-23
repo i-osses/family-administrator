@@ -9,6 +9,7 @@ import {
   Mail,
   Plus,
   Shield,
+  SlidersHorizontal,
   Trash2,
   UserMinus,
   Users,
@@ -16,7 +17,10 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { useFamily } from "@/components/dashboard/FamilyProvider";
+import {
+  useFamily,
+  type ModuleSettingsPatch,
+} from "@/components/dashboard/FamilyProvider";
 import { useToast } from "@/components/ui/ToastProvider";
 import { Avatar } from "@/components/ui/Avatar";
 import { DEFAULT_BANNER_URL } from "@/lib/constants";
@@ -37,11 +41,15 @@ export default function FamilyManagementPage() {
     profile,
     activeFamily,
     members,
+    moduleSettings,
     loadingFamilies,
     refreshFamilies,
     refreshMembers,
+    updateModuleSettings,
     createFamily,
   } = useFamily();
+
+  const [savingModuleKey, setSavingModuleKey] = useState<string | null>(null);
 
   // Rename active family (draft tracks edits for the active family without effect sync)
   const [draftFamilyName, setDraftFamilyName] = useState<{
@@ -102,6 +110,25 @@ export default function FamilyManagementPage() {
   }, [loadInvitations]);
 
   const isCurrentUserAdmin = activeFamily?.role === "admin";
+
+  const handleToggleModule = async (
+    key: keyof ModuleSettingsPatch,
+    nextValue: boolean
+  ) => {
+    if (!isCurrentUserAdmin) return;
+    setSavingModuleKey(key);
+    try {
+      await updateModuleSettings({ [key]: nextValue });
+      showToast(t.family.modules.savedToast, "success");
+    } catch (err) {
+      showToast(
+        err instanceof Error ? err.message : t.errors.generic,
+        "error"
+      );
+    } finally {
+      setSavingModuleKey(null);
+    }
+  };
 
   const handleCreateFamily = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -747,6 +774,99 @@ export default function FamilyManagementPage() {
               </div>
             </section>
           </div>
+
+          {/* Admin-Only Module Visibility Controls */}
+          {isCurrentUserAdmin && (
+            <section
+              id="module-visibility"
+              className="surface-card rounded-2xl p-5 sm:p-6"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div className="flex items-start gap-2.5">
+                  <SlidersHorizontal className="mt-0.5 h-5 w-5 shrink-0 text-[#2D5A47]" />
+                  <div>
+                    <h2 className="font-display text-base font-bold text-[#1C1917]">
+                      {t.family.modules.title}
+                    </h2>
+                    <p className="mt-0.5 text-xs text-[#6B655E]">
+                      {t.family.modules.subtitle}
+                    </p>
+                  </div>
+                </div>
+                <span className="inline-flex items-center gap-1 rounded-full bg-[#E9F2EE] px-2.5 py-1 text-[11px] font-semibold text-[#234738]">
+                  <Shield className="h-3 w-3" />
+                  {t.family.modules.adminOnlyBadge}
+                </span>
+              </div>
+
+              <div className="mt-5 divide-y divide-[#EFEAE2]">
+                {(
+                  [
+                    {
+                      key: "show_calendar" as const,
+                      title: t.family.modules.showCalendarTitle,
+                      desc: t.family.modules.showCalendarDesc,
+                      enabled: moduleSettings.show_calendar,
+                    },
+                    {
+                      key: "show_family_feed" as const,
+                      title: t.family.modules.showFeedTitle,
+                      desc: t.family.modules.showFeedDesc,
+                      enabled: moduleSettings.show_family_feed,
+                    },
+                    {
+                      key: "show_family_budget" as const,
+                      title: t.family.modules.showBudgetTitle,
+                      desc: t.family.modules.showBudgetDesc,
+                      enabled: moduleSettings.show_family_budget,
+                    },
+                    {
+                      key: "show_quick_actions" as const,
+                      title: t.family.modules.showQuickActionsTitle,
+                      desc: t.family.modules.showQuickActionsDesc,
+                      enabled: moduleSettings.show_quick_actions,
+                    },
+                  ] as const
+                ).map((item) => {
+                  const isSavingThis = savingModuleKey === item.key;
+                  return (
+                    <div
+                      key={item.key}
+                      className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#1C1917]">
+                          {item.title}
+                        </p>
+                        <p className="mt-0.5 text-xs leading-relaxed text-[#6B655E]">
+                          {item.desc}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={item.enabled}
+                        aria-label={item.title}
+                        disabled={isSavingThis}
+                        onClick={() =>
+                          void handleToggleModule(item.key, !item.enabled)
+                        }
+                        className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition cursor-pointer disabled:opacity-60 ${
+                          item.enabled ? "bg-[#2D5A47]" : "bg-[#D5CDC1]"
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-xs transition ${
+                            item.enabled ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </>
       )}
 

@@ -18,7 +18,7 @@ export function Modal({
   title,
   subtitle,
   children,
-  maxWidthClass = "max-w-lg",
+  maxWidthClass = "sm:max-w-lg",
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -37,7 +37,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-[#1C1917]/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-x-hidden bg-[#1C1917]/40 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="modal-title"
@@ -46,13 +46,16 @@ export function Modal({
       }}
     >
       <div
-        className={`animate-fade-in w-full ${maxWidthClass} max-h-[90vh] overflow-y-auto rounded-t-2xl border border-[#E7E1D8] bg-white p-5 shadow-2xl sm:rounded-2xl sm:p-6`}
+        className={`animate-fade-in box-border w-full max-w-full ${maxWidthClass} max-h-[90dvh] overflow-x-hidden overflow-y-auto rounded-t-2xl border border-[#E7E1D8] bg-white p-4 shadow-2xl sm:rounded-2xl sm:p-6`}
+        style={{
+          paddingBottom: "max(1.25rem, env(safe-area-inset-bottom))",
+        }}
       >
-        <div className="mb-5 flex items-start justify-between gap-4">
-          <div>
+        <div className="mb-4 flex items-start justify-between gap-3 sm:mb-5">
+          <div className="min-w-0 flex-1">
             <h2
               id="modal-title"
-              className="font-display text-lg font-bold tracking-tight text-[#1C1917]"
+              className="truncate font-display text-lg font-bold tracking-tight text-[#1C1917]"
             >
               {title}
             </h2>
@@ -63,13 +66,13 @@ export function Modal({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-lg p-1.5 text-[#78716C] transition hover:bg-[#F3EFE9] hover:text-[#1C1917] cursor-pointer"
+            className="shrink-0 rounded-lg p-1.5 text-[#78716C] transition hover:bg-[#F3EFE9] hover:text-[#1C1917] cursor-pointer"
             aria-label="Close dialog"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
-        {children}
+        <div className="min-w-0 max-w-full">{children}</div>
       </div>
     </div>
   );

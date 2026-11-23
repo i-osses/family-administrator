@@ -7,8 +7,9 @@ import {
   LayoutDashboard,
   Users,
   CalendarDays,
-  BookHeart,
+  Sparkles,
   Wallet,
+  Lock,
   ChevronDown,
   Check,
   Plus,
@@ -30,6 +31,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     activeFamily,
     setActiveFamilyId,
     members,
+    moduleSettings,
     signOut,
   } = useFamily();
 
@@ -49,18 +51,56 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const navItems = [
+  const familyHubItems = [
+    {
+      href: "/dashboard",
+      label: t.nav.overview,
+      mobileLabel: t.nav.overview,
+      icon: LayoutDashboard,
+      isActive: pathname === "/dashboard",
+    },
+    {
+      href: "/dashboard/calendar",
+      label: t.nav.calendar,
+      mobileLabel: t.nav.calendar,
+      icon: CalendarDays,
+      isActive: pathname.startsWith("/dashboard/calendar"),
+    },
+    {
+      href: "/dashboard/memories",
+      label: t.nav.memories,
+      mobileLabel: t.nav.familyFeed,
+      icon: Sparkles,
+      isActive: pathname.startsWith("/dashboard/memories"),
+    },
+    ...(moduleSettings.show_family_budget
+      ? [
+          {
+            href: "/dashboard/budget",
+            label: t.nav.familyBudget,
+            mobileLabel: t.nav.budget,
+            icon: Wallet,
+            isActive: pathname.startsWith("/dashboard/budget"),
+          },
+        ]
+      : []),
+    {
+      href: "/dashboard/family",
+      label: t.nav.family,
+      mobileLabel: t.nav.family,
+      icon: Users,
+      isActive: pathname.startsWith("/dashboard/family"),
+    },
+  ];
+
+  const isMySpaceActive = pathname.startsWith("/dashboard/my-space");
+
+  const mobileTabs = [
     {
       href: "/dashboard",
       label: t.nav.overview,
       icon: LayoutDashboard,
       isActive: pathname === "/dashboard",
-    },
-    {
-      href: "/dashboard/family",
-      label: t.nav.family,
-      icon: Users,
-      isActive: pathname.startsWith("/dashboard/family"),
     },
     {
       href: "/dashboard/calendar",
@@ -70,20 +110,26 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     },
     {
       href: "/dashboard/memories",
-      label: t.nav.memories,
-      icon: BookHeart,
+      label: t.nav.familyFeed,
+      icon: Sparkles,
       isActive: pathname.startsWith("/dashboard/memories"),
     },
     {
-      href: "/dashboard/budget",
-      label: t.nav.budget,
-      icon: Wallet,
-      isActive: pathname.startsWith("/dashboard/budget"),
+      href: "/dashboard/my-space",
+      label: t.nav.mySpace,
+      icon: Lock,
+      isActive: isMySpaceActive,
+    },
+    {
+      href: "/dashboard/family",
+      label: t.nav.family,
+      icon: Users,
+      isActive: pathname.startsWith("/dashboard/family"),
     },
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#FAF8F5] text-[#1C1917]">
+    <div className="flex min-h-screen w-full max-w-full overflow-x-clip bg-[#FAF8F5] text-[#1C1917]">
       {/* Desktop Sidebar */}
       <aside className="hidden md:fixed md:inset-y-0 md:left-0 md:z-30 md:flex md:w-64 md:flex-col md:border-r md:border-[#E7E1D8] md:bg-white">
         <div className="flex h-16 items-center border-b border-[#EFEAE2] px-5">
@@ -92,28 +138,64 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4" aria-label="Main navigation">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
-                  item.isActive
-                    ? "bg-[#E9F2EE] font-semibold text-[#234738]"
-                    : "text-[#57534E] hover:bg-[#F5F2EC] hover:text-[#1C1917]"
-                }`}
-              >
-                <Icon
+        <nav
+          className="flex-1 overflow-y-auto px-3 py-4"
+          aria-label="Main navigation"
+        >
+          {/* Tier 1: Shared Family Hub */}
+          <p className="px-3.5 pb-2 text-[11px] font-semibold tracking-wider text-[#78716C] uppercase">
+            {t.nav.familyHubSection}
+          </p>
+          <div className="space-y-1">
+            {familyHubItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
+                    item.isActive
+                      ? "bg-[#E9F2EE] font-semibold text-[#234738]"
+                      : "text-[#57534E] hover:bg-[#F5F2EC] hover:text-[#1C1917]"
+                  }`}
+                >
+                  <Icon
+                    className={`h-4.5 w-4.5 shrink-0 ${
+                      item.isActive ? "text-[#2D5A47]" : "text-[#78716C]"
+                    }`}
+                  />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Tier 2: Private My Space */}
+          <div className="mt-6 border-t border-[#EFEAE2] pt-4">
+            <p className="px-3.5 pb-2 text-[11px] font-semibold tracking-wider text-[#78716C] uppercase">
+              {t.nav.mySpaceSection}
+            </p>
+            <Link
+              href="/dashboard/my-space"
+              className={`flex items-center justify-between gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium transition ${
+                isMySpaceActive
+                  ? "bg-[#FBF0EC] font-semibold text-[#9A4B33]"
+                  : "text-[#57534E] hover:bg-[#F5F2EC] hover:text-[#1C1917]"
+              }`}
+            >
+              <span className="flex min-w-0 items-center gap-3">
+                <Lock
                   className={`h-4.5 w-4.5 shrink-0 ${
-                    item.isActive ? "text-[#2D5A47]" : "text-[#78716C]"
+                    isMySpaceActive ? "text-[#C86D51]" : "text-[#78716C]"
                   }`}
                 />
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
+                <span className="truncate">{t.nav.mySpace}</span>
+              </span>
+              <span className="shrink-0 rounded-full bg-white/80 px-2 py-0.5 text-[10px] font-semibold text-[#78716C] ring-1 ring-[#E7E1D8]">
+                RLS
+              </span>
+            </Link>
+          </div>
         </nav>
 
         {/* Active Family Spotlight Mini-Card */}
@@ -170,21 +252,21 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex min-h-screen flex-1 flex-col md:pl-64">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col md:pl-64">
         {/* Top Header */}
-        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-3 border-b border-[#E7E1D8] bg-[#FAF8F5]/90 px-4 backdrop-blur-md sm:px-6">
-          <div className="flex min-w-0 items-center gap-3">
-            <Link href="/dashboard" className="md:hidden">
+        <header className="sticky top-0 z-20 flex h-16 items-center justify-between gap-2 border-b border-[#E7E1D8] bg-[#FAF8F5]/90 px-3 backdrop-blur-md sm:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <Link href="/dashboard" className="shrink-0 md:hidden">
               <BrandMark showLabel={false} />
             </Link>
 
             {/* Family Switcher Dropdown */}
-            <div ref={switcherRef} className="relative">
+            <div ref={switcherRef} className="relative min-w-0">
               <button
                 type="button"
                 id="family-switcher-button"
                 onClick={() => setSwitcherOpen((prev) => !prev)}
-                className="inline-flex max-w-[210px] items-center gap-2 rounded-xl border border-[#DFD8CE] bg-white px-3 py-1.5 text-sm font-semibold text-[#1C1917] shadow-2xs transition hover:bg-[#F5F2EC] sm:max-w-[260px] cursor-pointer"
+                className="inline-flex max-w-[180px] items-center gap-2 rounded-xl border border-[#DFD8CE] bg-white px-2.5 py-1.5 text-sm font-semibold text-[#1C1917] shadow-2xs transition hover:bg-[#F5F2EC] sm:max-w-[260px] sm:px-3 cursor-pointer"
                 aria-expanded={switcherOpen}
                 aria-haspopup="listbox"
               >
@@ -196,7 +278,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
               </button>
 
               {switcherOpen && (
-                <div className="animate-fade-in absolute left-0 mt-2 w-64 rounded-2xl border border-[#E7E1D8] bg-white p-1.5 shadow-xl">
+                <div className="animate-fade-in absolute left-0 mt-2 w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#E7E1D8] bg-white p-1.5 shadow-xl">
                   <p className="px-2.5 py-1.5 text-[11px] font-semibold tracking-wider text-[#78716C] uppercase">
                     {t.nav.switchFamily}
                   </p>
@@ -247,7 +329,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5">
+          <div className="flex shrink-0 items-center gap-2">
             <LanguageToggle compact />
             <button
               type="button"
@@ -262,7 +344,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </header>
 
         {/* Page Body */}
-        <main className="mx-auto w-full max-w-6xl flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-10">
+        <main className="mx-auto w-full max-w-6xl min-w-0 flex-1 px-4 pt-6 pb-24 sm:px-6 md:pb-10">
           {children}
         </main>
       </div>
@@ -274,24 +356,33 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
       >
         <div className="grid grid-cols-5">
-          {navItems.map((item) => {
+          {mobileTabs.map((item) => {
             const Icon = item.icon;
+            const isPrivateTab = item.href === "/dashboard/my-space";
             return (
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition ${
-                  item.isActive ? "text-[#2D5A47] font-semibold" : "text-[#78716C]"
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 px-1 py-2.5 text-[11px] font-medium transition ${
+                  item.isActive
+                    ? isPrivateTab
+                      ? "font-semibold text-[#C86D51]"
+                      : "font-semibold text-[#2D5A47]"
+                    : "text-[#78716C]"
                 }`}
               >
                 <span
                   className={`flex h-7 w-11 items-center justify-center rounded-full transition ${
-                    item.isActive ? "bg-[#E9F2EE]" : ""
+                    item.isActive
+                      ? isPrivateTab
+                        ? "bg-[#FBF0EC]"
+                        : "bg-[#E9F2EE]"
+                      : ""
                   }`}
                 >
                   <Icon className="h-4.5 w-4.5" />
                 </span>
-                <span className="truncate">{item.label}</span>
+                <span className="max-w-full truncate">{item.label}</span>
               </Link>
             );
           })}
