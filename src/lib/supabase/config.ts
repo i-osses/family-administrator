@@ -1,15 +1,22 @@
 export function getSupabaseEnv() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() ?? "";
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ?? "";
+
+  let hasValidUrl = false;
+  if (url && !url.includes("your-project-ref")) {
+    try {
+      const parsed = new URL(url);
+      hasValidUrl = parsed.protocol === "https:" || parsed.protocol === "http:";
+    } catch {
+      hasValidUrl = false;
+    }
+  }
 
   return {
-    url: url ?? "",
-    anonKey: anonKey ?? "",
+    url,
+    anonKey,
     isConfigured: Boolean(
-      url &&
-        anonKey &&
-        !url.includes("your-project-ref") &&
-        !anonKey.includes("your-supabase-anon-key")
+      hasValidUrl && anonKey && !anonKey.includes("your-supabase-anon-key")
     ),
   };
 }

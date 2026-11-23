@@ -7,16 +7,22 @@ export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const { isConfigured } = getSupabaseEnv();
+  let isSignedIn = false;
 
   if (isConfigured) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      redirect("/dashboard");
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      isSignedIn = Boolean(user);
+    } catch {
+      isSignedIn = false;
     }
+  }
+
+  if (isSignedIn) {
+    redirect("/dashboard");
   }
 
   return <LandingView />;
